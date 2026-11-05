@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="format-detection" content="telephone=no">
+<title>หารค่าอาหาร</title>
+<style>
+:root{
+  --bg:#f2f4f7; --card:#ffffff; --ink:#101828; --muted:#667085; --line:#e4e7ec; --field:#ffffff;
+  --primary:#0f766e; --primary-ink:#ffffff; --primary-soft:#e6f4f1; --primary-line:#9fd6cc;
+  --minus:#b42318; --minus-soft:#fff5f4; --minus-line:#fecdca;
+  --plus:#067647; --plus-soft:#f1fbf5; --plus-line:#abefc6;
+  --warn:#b54708; --warn-soft:#fffaeb; --warn-line:#fedf89;
+  --danger:#d92d20;
+  --toast-bg:#101828; --toast-ink:#ffffff;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.07);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0b0f14; --card:#151a21; --ink:#e7eaee; --muted:#98a2b3; --line:#2a313b; --field:#0f1419;
+    --primary:#2dd4bf; --primary-ink:#04201c; --primary-soft:#0f2b28; --primary-line:#1e5a53;
+    --minus:#fda29b; --minus-soft:#2a1614; --minus-line:#55241f;
+    --plus:#75e0a7; --plus-soft:#0f2618; --plus-line:#1d4d33;
+    --warn:#fdb022; --warn-soft:#2a2108; --warn-line:#5c4510;
+    --danger:#f97066;
+    --toast-bg:#e7eaee; --toast-ink:#101828;
+    --shadow:none;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:12px;scroll-padding-bottom:120px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Sukhumvit Set","Thonburi","Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif;padding-bottom:calc(100px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:3px solid var(--primary-line);outline-offset:2px}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+.app{max-width:760px;margin:0 auto;padding:10px 10px 0}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px 12px}
+.topbar h1{margin:0;font-size:22px;line-height:1.2}
+.topbar .sub{margin:2px 0 0;color:var(--muted);font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 10px;margin-bottom:12px;box-shadow:var(--shadow)}
+.step-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.step-head h2{margin:0;font-size:18px;display:flex;align-items:center;gap:8px}
+.num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--primary);color:var(--primary-ink);font-size:14px;font-weight:700;flex:none}
+.pill{font-size:13px;color:var(--muted);background:var(--bg);border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.hint{margin:0 0 10px;color:var(--muted);font-size:14px}
+.empty{color:var(--muted);text-align:center;padding:14px 8px;margin:0;font-size:15px}
+
+/* ปุ่มทั่วไป: สูงอย่างน้อย 44px */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:15px;white-space:nowrap}
+.btn:active:not(:disabled){transform:scale(.98)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+.btn-primary:disabled{background:var(--line);border-color:var(--line);color:var(--muted)}
+.btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn-danger-outline{color:var(--danger)}
+.btn-sm{font-size:14px;padding:0 12px}
+.block{width:100%}
+.lg{min-height:52px;font-size:17px}
+.toolbar{display:flex;gap:8px;margin:8px 0 10px;flex-wrap:wrap}
+
+/* Service charge / VAT */
+.settings{padding-top:4px;padding-bottom:4px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-top:1px solid var(--line)}
+.set-row.first{border-top:0}
+.check{display:flex;align-items:center;gap:12px;flex:1;min-height:48px;font-weight:600;cursor:pointer}
+.check input{width:24px;height:24px;margin:0;accent-color:var(--primary);flex:none;cursor:pointer}
+.rate{display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
+.rate input{width:76px;height:44px;border:1.5px solid var(--line);border-radius:10px;text-align:right;padding:0 10px;font-size:17px;font-weight:700;background:var(--field);font-variant-numeric:tabular-nums}
+.rate input:disabled{opacity:.4}
+.switch-row{padding:6px 0 6px 36px;cursor:pointer}
+.switch-text{display:flex;flex-direction:column;font-size:15px;font-weight:600;min-width:0}
+.switch-text small{font-weight:400;color:var(--muted);font-size:13px}
+.switch{appearance:none;-webkit-appearance:none;width:52px;height:32px;border-radius:999px;background:var(--line);position:relative;flex:none;margin:0;cursor:pointer;transition:background .15s}
+.switch::before{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.switch:checked{background:var(--primary)}
+.switch:checked::before{transform:translateX(20px)}
+.switch-row.is-disabled{cursor:not-allowed}
+.switch-row.is-disabled .switch{cursor:not-allowed;opacity:.45}
+.switch-row.is-disabled .switch:checked{background:var(--muted)}
+.switch-row.is-disabled .switch-text{opacity:.5}
+
+/* chip เลือกคน */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px 0 10px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font-size:16px;font-weight:500;max-width:100%}
+.chip .tick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:inline-grid;place-items:center;font-size:12px;font-weight:800;flex:none;color:transparent}
+.chip.on{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+.chip.on .tick{background:var(--primary-ink);border-color:var(--primary-ink);color:var(--primary)}
+.chip-label{overflow-wrap:anywhere;text-align:left}
+.chip.sm{font-size:15px;padding:0 12px 0 8px}
+.chip-group{display:inline-flex;max-width:100%;border-radius:999px}
+.chip-group .chip{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0;padding-right:10px}
+.chip-x{min-height:44px;min-width:42px;border:1.5px solid var(--line);border-left:1px dashed var(--line);border-radius:0 999px 999px 0;background:var(--card);font-size:20px;line-height:1;color:var(--muted);padding:0 12px 0 8px}
+.chip-group.on .chip-x{background:var(--primary);border-color:var(--primary);color:var(--primary-ink);border-left-color:rgba(255,255,255,.4)}
+.flash{animation:flash 1.4s ease}
+@keyframes flash{0%,100%{box-shadow:0 0 0 0 transparent}20%,65%{box-shadow:0 0 0 4px var(--warn-line)}}
+.add-form{display:flex;gap:8px;margin-top:12px}
+.add-form input{flex:1;min-width:0;height:48px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;background:var(--field);font-size:16px}
+.add-form .btn{min-height:48px}
+.field-error{color:var(--danger);font-size:14px;margin:6px 2px 0}
+.field-error:empty{display:none}
+
+/* แถวกรอกเงิน + ปุ่ม ± */
+.prow{padding:12px 0;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0;padding-top:4px}
+.row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.row-name{font-weight:600;font-size:17px;min-width:0;overflow-wrap:anywhere}
+.money-wrap{position:relative;flex:none}
+.money-wrap .cur{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.money{width:140px;height:48px;border:1.5px solid var(--line);border-radius:12px;background:var(--field);text-align:right;padding:0 12px 0 28px;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.money::placeholder{color:var(--muted);opacity:.55;font-weight:500}
+.stepper{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.step{min-height:44px;min-width:0;padding:0;border-radius:10px;border:1px solid;font-size:13.5px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow:hidden}
+.step.minus{color:var(--minus);background:var(--minus-soft);border-color:var(--minus-line)}
+.step.plus{color:var(--plus);background:var(--plus-soft);border-color:var(--plus-line)}
+.step:disabled{opacity:.35}
+.step:active:not(:disabled){filter:brightness(.92)}
+
+/* จานส่วนกลาง */
+.dish{border:1.5px solid var(--line);border-radius:14px;padding:12px 8px;margin-bottom:10px;background:var(--card)}
+.dish .stepper{gap:3px}
+.dish .step{font-size:12.5px;letter-spacing:-.04em}
+.dish.confirmed{background:var(--primary-soft);border-color:var(--primary-line)}
+.dish-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.dish-name{flex:1;min-width:0;height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 10px;background:var(--field);font-weight:700;font-size:16px}
+.members-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 8px;flex-wrap:wrap;font-weight:600}
+.members-head .muted{color:var(--muted);font-weight:500}
+.mini{display:flex;gap:6px}
+.dish-status{margin:12px 0 8px;font-weight:700;font-size:15px;color:var(--primary)}
+.dish-status.bad{color:var(--warn);font-weight:500}
+.warn-inline{background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn);border-radius:10px;padding:8px 10px;font-size:14px;margin:0 0 10px}
+.dish-title{display:flex;align-items:center;gap:8px;flex:1;min-width:0;font-weight:700;font-size:17px}
+.dish-title-text{overflow-wrap:anywhere;min-width:0}
+.ok-badge{width:22px;height:22px;border-radius:50%;background:var(--primary);color:var(--primary-ink);display:inline-grid;place-items:center;font-size:13px;flex:none}
+.dish-amt{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;flex:none}
+.dish-split{margin:0 0 4px;font-weight:700;color:var(--primary)}
+.dish-members{margin:0 0 10px;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.dish-actions{display:flex;gap:8px}
+.dish-actions .btn{flex:1}
+.btn-add{width:100%;min-height:52px;border:1.5px dashed var(--primary-line);border-radius:14px;background:transparent;color:var(--primary);font-weight:700;font-size:16px}
+
+/* สรุปยอด */
+.banner{display:flex;gap:8px 10px;align-items:center;justify-content:space-between;background:var(--warn-soft);border:1px solid var(--warn-line);color:var(--warn);border-radius:12px;padding:8px 10px 8px 12px;margin-bottom:12px;font-size:14px;flex-wrap:wrap}
+.banner p{margin:0;flex:1 1 180px}
+.banner .btn{color:var(--warn);border-color:var(--warn-line);background:transparent}
+.pcard{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.pcard-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.pname{font-weight:700;font-size:18px;min-width:0;overflow-wrap:anywhere}
+.ptotal{text-align:right;flex:none}
+.ptotal small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.ptotal b{font-size:28px;line-height:1.1;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums}
+.pdl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin:10px 0 0;font-size:14px}
+.pdl dt{color:var(--muted)}
+.pdl dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.pdl .strong{color:var(--ink);font-weight:700}
+.sum-table-wrap{display:none}
+@media (min-width:640px){.sum-cards{display:none}.sum-table-wrap{display:block}}
+.sum-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.sum-table th,.sum-table td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+.sum-table th:first-child,.sum-table td:first-child{text-align:left}
+.sum-table thead th{color:var(--muted);font-weight:600;font-size:13px}
+.sum-table td.net{font-weight:800;font-size:17px;color:var(--primary)}
+.sum-table tfoot td{font-weight:700;border-bottom:0}
+.bill{margin-top:12px;border-top:2px dashed var(--line);padding-top:12px}
+.bill-title{margin:0;font-size:16px}
+.bill-title small{color:var(--muted);font-weight:400;font-size:13px}
+.bill-total{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-weight:700}
+.bill-amt{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.collected{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:14px;margin-top:4px;font-variant-numeric:tabular-nums}
+.diff{margin:6px 0 0;color:var(--warn);font-size:14px;font-weight:700;text-align:right}
+.footnote{margin:12px 0 0;color:var(--muted);font-size:12.5px}
+#copyBtnMain{margin-top:14px}
+
+/* แถบล่าง (sticky) */
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(16,24,40,.08);padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+.sticky-inner{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.sticky-info{flex:1;min-width:0}
+.sticky-meta{font-size:13px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge-warn{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn-line);border-radius:999px;padding:0 8px;font-size:12px;font-weight:700}
+.sticky-amt{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15;overflow-wrap:anywhere}
+.sticky-amt small{font-size:14px;font-weight:600;color:var(--muted)}
+.sticky .btn{min-height:48px;padding:0 16px;flex:none}
+
+/* toast + modal */
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;transform:translate(-50%,16px);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;background:var(--toast-bg);color:var(--toast-ink);border-radius:14px;padding:10px 18px;min-height:44px;display:flex;align-items:center;gap:8px;width:max-content;max-width:calc(100vw - 24px);font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast.has-action{padding:4px 4px 4px 16px}
+.toast-btn{min-height:44px;border:0;border-radius:10px;padding:0 14px;background:transparent;color:inherit;font-weight:800;text-decoration:underline;flex:none}
+.modal{position:fixed;inset:0;z-index:40;background:rgba(16,24,40,.5);display:flex;align-items:flex-end;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
+@media (min-width:520px){.modal{align-items:center}}
+.modal-box{background:var(--card);color:var(--ink);border-radius:18px;padding:18px 16px 14px;width:100%;max-width:440px;max-height:85vh;overflow:auto;box-shadow:0 20px 40px rgba(0,0,0,.25)}
+.modal-title{margin:0 0 8px;font-size:18px}
+.modal-text{margin:0 0 12px;color:var(--muted);font-size:15px}
+.modal-actions{display:flex;gap:8px;margin-top:14px}
+.modal-actions .btn{flex:1;white-space:normal}
+.copy-box{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:10px;background:var(--field);font-size:16px;line-height:1.5;resize:vertical}
+body.modal-open{overflow:hidden}
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px">ต้องเปิด JavaScript เพื่อใช้งานหน้านี้</p></noscript>
+
+<div class="app">
+  <header class="topbar">
+    <div>
+      <h1>หารค่าอาหาร</h1>
+      <p class="sub" id="todayLabel"></p>
+    </div>
+    <button type="button" class="btn btn-sm" id="newBillBtn">เริ่มบิลใหม่</button>
+  </header>
+
+  <!-- Service charge / VAT: วางไว้บนสุดให้เห็นชัด -->
+  <section class="card settings" aria-labelledby="hSettings">
+    <h2 id="hSettings" class="sr-only">Service charge และ VAT</h2>
+    <div class="set-row first">
+      <label class="check"><input type="checkbox" id="scOn"><span>Service charge</span></label>
+      <span class="rate"><input id="scRate" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" maxlength="6" aria-label="อัตรา Service charge (เปอร์เซ็นต์)" data-fk="scRate"><span>%</span></span>
+    </div>
+    <div class="set-row">
+      <label class="check"><input type="checkbox" id="vatOn"><span>VAT</span></label>
+      <span class="rate"><input id="vatRate" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" maxlength="6" aria-label="อัตรา VAT (เปอร์เซ็นต์)" data-fk="vatRate"><span>%</span></span>
+    </div>
+    <label class="set-row switch-row" id="afterScRow">
+      <span class="switch-text">คิด VAT หลังบวก Service charge<small id="vatModeHint"></small></span>
+      <input type="checkbox" role="switch" class="switch" id="vatAfterSc">
+    </label>
+  </section>
+
+  <!-- ขั้นที่ 1 -->
+  <section class="card" aria-labelledby="h1">
+    <div class="step-head">
+      <h2 id="h1"><span class="num">1</span>ใครกินมื้อนี้บ้าง</h2>
+      <span class="pill" id="selCount"></span>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn btn-sm" id="selAllBtn">เลือกทั้งหมด</button>
+      <button type="button" class="btn btn-sm" id="selNoneBtn">ล้าง</button>
+    </div>
+    <div class="chips" id="peopleChips"></div>
+    <form class="add-form" id="addForm" novalidate autocomplete="off">
+      <input id="newName" type="text" maxlength="20" placeholder="พิมพ์ชื่อคนอื่นเพิ่ม" enterkeyhint="done" aria-label="ชื่อที่จะเพิ่ม" data-fk="newName">
+      <button type="submit" class="btn btn-primary">เพิ่ม</button>
+    </form>
+    <p class="field-error" id="nameError" aria-live="polite"></p>
+  </section>
+
+  <!-- ขั้นที่ 2 -->
+  <section class="card" aria-labelledby="h2">
+    <div class="step-head">
+      <h2 id="h2"><span class="num">2</span>ค่าอาหารส่วนตัว</h2>
+      <span class="pill" id="personalTotal"></span>
+    </div>
+    <p class="hint">อาหารที่แต่ละคนกินคนเดียว</p>
+    <div id="personalList"></div>
+  </section>
+
+  <!-- ขั้นที่ 3 -->
+  <section class="card" aria-labelledby="h3">
+    <div class="step-head">
+      <h2 id="h3"><span class="num">3</span>ค่าอาหารส่วนกลาง</h2>
+      <span class="pill" id="dishTotal"></span>
+    </div>
+    <p class="hint">จานที่สั่งมากินร่วมกัน หารเฉพาะคนที่กินจานนั้น</p>
+    <div id="dishList"></div>
+    <button type="button" class="btn-add" id="addDishBtn">+ เพิ่มจานส่วนกลาง</button>
+  </section>
+
+  <!-- สรุปยอด -->
+  <section class="card" aria-labelledby="hSum" id="summaryCard">
+    <div class="step-head">
+      <h2 id="hSum"><span class="num">฿</span>สรุปยอด</h2>
+      <span class="pill" id="summaryDate"></span>
+    </div>
+    <div id="summaryBody"></div>
+    <button type="button" class="btn btn-primary block lg" id="copyBtnMain">คัดลอกสรุป</button>
+  </section>
+</div>
+
+<div class="sticky" id="stickyBar">
+  <div class="sticky-inner">
+    <div class="sticky-info">
+      <div class="sticky-meta"><span id="stickyMeta"></span><span class="badge-warn" id="stickyPending" hidden></span></div>
+      <div class="sticky-amt" aria-live="polite"><span id="stickyAmt">0.00</span> <small>บาท</small></div>
+    </div>
+    <button type="button" class="btn btn-primary" id="copyBtnSticky">คัดลอกสรุป</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" hidden><div class="modal-box" id="modalBox" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></div></div>
+
+<script>
+'use strict';
+// ===== รายชื่อเริ่มต้น: แก้ตรงนี้ได้เลย (แสดงตามลำดับนี้, ลบออกจากแอปไม่ได้) =====
+const DEFAULT_NAMES = ['จุ่น', 'อะตอม', 'โบ', 'ฮิม', 'ไช้', 'กี๋', 'หลุย', 'ใบเฟิร์น', 'โอ๊ต', 'ไปป์', 'บูม', 'แป้ง', 'ต้น', 'เอสเตอร์', 'เม่น', 'ปลื้ม'];
+
+// ===== ค่าตั้งต้นอื่นๆ =====
+const DEFAULT_SC_PERCENT = 10;
+const DEFAULT_VAT_PERCENT = 7;
+const NEW_DISH_SELECT_ALL = true;   // จานใหม่ติ๊กทุกคนที่ร่วมกินไว้ก่อน (เปลี่ยนเป็น false ถ้าอยากให้เริ่มว่าง)
+const STEP_VALUES = [-100, -10, -2, -1, 1, 2, 10, 100];
+const MAX_SATANG = 999999999;       // สูงสุด 9,999,999.99 บาท
+const NAME_MAX = 20;
+const STORAGE_KEY = 'split-bill:v1';
+const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const WARN_EMPTY = 'ไม่เหลือคนร่วมจ่ายจานนี้แล้ว จึงกลับเป็น "ยังไม่ยืนยัน" — เลือกคนแล้วกดยืนยันใหม่';
+
+/* =====================================================================
+   ตัวเลข: เงินเก็บเป็น "สตางค์" (จำนวนเต็ม) เช่น 12.50 บาท = 1250
+           อัตรา % เก็บเป็น "% × 100" (จำนวนเต็ม) เช่น 7% = 700
+   ===================================================================== */
+function fmtMoney(satang) {
+  const neg = satang < 0;
+  const v = Math.abs(satang);
+  const baht = Math.floor(v / 100);
+  const st = v % 100;
+  return (neg ? '-' : '') + String(baht).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + String(st).padStart(2, '0');
+}
+function satangToInput(v) {
+  if (!v) return '';
+  return v % 100 === 0 ? String(v / 100) : (v / 100).toFixed(2);
+}
+function rateLabel(r) {
+  return r % 100 === 0 ? String(r / 100) : (r / 100).toFixed(2).replace(/0$/, '');
+}
+// กรองให้เหลือตัวเลข + จุดทศนิยม 1 จุด, ทศนิยมไม่เกิน 2 ตำแหน่ง (รับเลขไทย ๐-๙ ได้)
+function sanitizeNum(raw, maxIntDigits) {
+  const s = String(raw).replace(/[๐-๙]/g, c => String(c.charCodeAt(0) - 0x0E50)).replace(/[^\d.]/g, '');
+  const dot = s.indexOf('.');
+  let ip = dot === -1 ? s : s.slice(0, dot);
+  const fp = dot === -1 ? null : s.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+  ip = ip.replace(/^0+(?=\d)/, '').slice(0, maxIntDigits);
+  if (fp !== null && ip === '') ip = '0';
+  return fp === null ? ip : ip + '.' + fp;
+}
+// "12.5" → 1250 (หน่วยย่อย 1/100)
+function parseHundredths(s) {
+  if (!s || s === '.') return 0;
+  const parts = s.split('.');
+  return parseInt(parts[0] || '0', 10) * 100 + parseInt(((parts[1] || '') + '00').slice(0, 2), 10);
+}
+function clampMoney(v) { return Math.max(0, Math.min(MAX_SATANG, v)); }
+function thaiShortDate(d) {
+  return d.getDate() + ' ' + TH_MONTHS[d.getMonth()] + ' ' + String((d.getFullYear() + 543) % 100).padStart(2, '0');
+}
+
+/* ===== เศษส่วนแบบ BigInt: คำนวณละเอียดเต็ม ไม่มีปัญหา floating point =====
+   เช่น 300 บาท ÷ 3 คน = 30000/3 สตางค์ เก็บเป็นเศษส่วนจริง ไม่ใช่ 33.333...  */
+const F0 = { n: 0n, d: 1n };
+function bgcd(a, b) { while (b) { const t = a % b; a = b; b = t; } return a; }
+function F(n, d) { if (d === undefined) d = 1n; const g = bgcd(n, d) || 1n; return { n: n / g, d: d / g }; }
+function fAdd(a, b) { return F(a.n * b.d + b.n * a.d, a.d * b.d); }
+function fMul(a, b) { return F(a.n * b.n, a.d * b.d); }
+// ปัดขึ้น (ceiling) เป็นสตางค์ — ใช้ตอนแสดงผลเท่านั้น
+function fCeil(a) { return Number((a.n + a.d - 1n) / a.d); }
+
+/* ===== Helpers ของ state ===== */
+function normName(s) { return String(s).normalize('NFC').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX); }
+function nameKey(s) { return normName(s).toLowerCase(); }
+function allNames(s) { return DEFAULT_NAMES.concat(s.customNames); }
+function participants(s) { const sel = new Set(s.selected); return allNames(s).filter(n => sel.has(n)); }
+function dishLabel(d) { return (d.name || '').trim() || ('จานที่ ' + d.seq); }
+
+/* =====================================================================
+   calculate(state): pure function — ไม่แตะ DOM
+   คืนค่าทุกอย่างเป็น "สตางค์ที่ปัดขึ้นแล้ว" สำหรับแสดงผล
+   (ปัดครั้งเดียวต่อช่องตอนท้าย ไม่เอาค่าที่ปัดแล้วไปคำนวณต่อ)
+   ===================================================================== */
+function calculate(s) {
+  const people = participants(s);
+  const inBill = new Set(people);
+  const scRate = s.sc.on ? F(BigInt(s.sc.rate), 10000n) : F0;
+  const vatRate = s.vat.on ? F(BigInt(s.vat.rate), 10000n) : F0;
+  const vatAfterSc = s.sc.on && s.vat.on && s.vat.afterSc;
+
+  const share = new Map(people.map(n => [n, F0]));
+  const dishes = {};
+  const pending = [];
+  for (const d of s.dishes) {
+    const members = d.members.filter(n => inBill.has(n));
+    const per = members.length ? F(BigInt(d.amount), BigInt(members.length)) : F0;
+    const counted = d.confirmed && d.amount > 0 && members.length > 0;
+    dishes[d.id] = { count: members.length, perPerson: fCeil(per), counted: counted };
+    if (!counted) { pending.push({ id: d.id, name: dishLabel(d) }); continue; }  // จานที่ยังไม่ยืนยันไม่ถูกนำไปคิด
+    for (const n of members) share.set(n, fAdd(share.get(n), per));
+  }
+
+  let tBase = F0, tSc = F0, tVat = F0, tTotal = F0, collected = 0;
+  const rows = people.map(name => {
+    const personal = F(BigInt(s.personal[name] || 0));
+    const shared = share.get(name);
+    const base = fAdd(personal, shared);
+    const sc = fMul(base, scRate);
+    const vat = fMul(vatAfterSc ? fAdd(base, sc) : base, vatRate);
+    const total = fAdd(fAdd(base, sc), vat);
+    tBase = fAdd(tBase, base); tSc = fAdd(tSc, sc); tVat = fAdd(tVat, vat); tTotal = fAdd(tTotal, total);
+    const totalC = fCeil(total);
+    collected += totalC;
+    return { name: name, personal: fCeil(personal), shared: fCeil(shared), base: fCeil(base), sc: fCeil(sc), vat: fCeil(vat), total: totalC };
+  });
+  const billTotal = fCeil(tTotal);
+  return {
+    people: rows,
+    dishes: dishes,
+    pending: pending,
+    bill: { food: fCeil(tBase), sc: fCeil(tSc), vat: fCeil(tVat), total: billTotal, collected: collected, diff: collected - billTotal }
+  };
+}
+
+// ข้อความสำหรับวางใน LINE (บรรทัดละคน ไม่ใช้ตาราง)
+function buildCopyText(s, r, date) {
+  const lines = ['สรุปค่าอาหาร ' + thaiShortDate(date)];
+  r.people.forEach(p => lines.push(p.name + ' ' + fmtMoney(p.total) + ' บาท'));
+  const parts = [];
+  if (s.sc.on) parts.push('SC ' + rateLabel(s.sc.rate) + '%');
+  if (s.vat.on) parts.push('VAT ' + rateLabel(s.vat.rate) + '%');
+  const mode = (s.sc.on && s.vat.on && !s.vat.afterSc) ? ' คิด VAT จากค่าอาหาร' : '';
+  lines.push('รวมทั้งบิล ' + fmtMoney(r.bill.total) + ' บาท' + (parts.length ? ' (รวม ' + parts.join(' และ ') + mode + ')' : ''));
+  if (r.bill.diff > 0) lines.push('เก็บรายคนรวม ' + fmtMoney(r.bill.collected) + ' บาท (เศษจากการปัดขึ้น +' + fmtMoney(r.bill.diff) + ')');
+  return lines.join('\n');
+}
+
+/* ===== State (object เดียว) + การเก็บลง localStorage ===== */
+function freshBill(customNames) {
+  return {
+    v: 1,
+    customNames: customNames || [],
+    selected: [],
+    personal: Object.create(null),   // ชื่อ → สตางค์ (เก็บไว้แม้ไม่ได้เลือกคนนั้น)
+    dishes: [],                       // { id, seq, name, amount, members[], confirmed, warn }
+    dishSeq: 0,
+    sc: { on: true, rate: DEFAULT_SC_PERCENT * 100 },
+    vat: { on: true, rate: DEFAULT_VAT_PERCENT * 100, afterSc: true }
+  };
+}
+// อ่าน + ตรวจข้อมูลที่เก็บไว้ ถ้าเสียหายก็เริ่มใหม่
+function parseState(raw) {
+  const s = freshBill([]);
+  if (!raw) return s;
+  let d;
+  try { d = JSON.parse(raw); } catch (e) { return s; }
+  if (!d || typeof d !== 'object') return s;
+  const okInt = x => Number.isInteger(x) && x >= 0;
+  if (Array.isArray(d.customNames)) {
+    for (const n of d.customNames) {
+      if (typeof n !== 'string') continue;
+      const nm = normName(n);
+      if (nm && !allNames(s).some(x => nameKey(x) === nameKey(nm))) s.customNames.push(nm);
+    }
+  }
+  const all = new Set(allNames(s));
+  if (Array.isArray(d.selected)) s.selected = Array.from(new Set(d.selected)).filter(n => all.has(n));
+  if (d.personal && typeof d.personal === 'object') {
+    for (const k of Object.keys(d.personal)) if (all.has(k) && okInt(d.personal[k])) s.personal[k] = Math.min(d.personal[k], MAX_SATANG);
+  }
+  const sel = new Set(s.selected);
+  let maxSeq = 0;
+  if (Array.isArray(d.dishes)) {
+    for (const x of d.dishes) {
+      if (!x || typeof x !== 'object' || !okInt(x.seq) || x.seq < 1 || s.dishes.some(y => y.seq === x.seq)) continue;
+      const members = Array.isArray(x.members) ? Array.from(new Set(x.members)).filter(n => sel.has(n)) : [];
+      const amount = okInt(x.amount) ? Math.min(x.amount, MAX_SATANG) : 0;
+      const confirmed = x.confirmed === true && amount > 0 && members.length > 0;
+      s.dishes.push({
+        id: 'd' + x.seq, seq: x.seq, name: typeof x.name === 'string' ? x.name.slice(0, 40) : '',
+        amount: amount, members: members, confirmed: confirmed,
+        warn: (x.confirmed === true && !confirmed) ? WARN_EMPTY : (typeof x.warn === 'string' ? x.warn : null)
+      });
+      maxSeq = Math.max(maxSeq, x.seq);
+    }
+  }
+  s.dishSeq = Math.max(okInt(d.dishSeq) ? d.dishSeq : 0, maxSeq);
+  if (d.sc && typeof d.sc === 'object') {
+    s.sc.on = d.sc.on !== false;
+    if (okInt(d.sc.rate) && d.sc.rate <= 10000) s.sc.rate = d.sc.rate;
+  }
+  if (d.vat && typeof d.vat === 'object') {
+    s.vat.on = d.vat.on !== false;
+    if (okInt(d.vat.rate) && d.vat.rate <= 10000) s.vat.rate = d.vat.rate;
+    s.vat.afterSc = d.vat.afterSc !== false;
+  }
+  return s;
+}
+function loadState() {
+  let raw = null;
+  try { raw = window.localStorage.getItem(STORAGE_KEY); } catch (e) { /* ใช้ localStorage ไม่ได้ ก็ทำงานต่อ */ }
+  return parseState(raw);
+}
+function saveState() {
+  try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* เงียบไว้ แอปยังใช้ได้ */ }
+}
+
+let state = loadState();
+
+/* =====================================================================
+   DOM helpers
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+function h(tag, props) {
+  const el = document.createElement(tag);
+  if (props) {
+    for (const k of Object.keys(props)) {
+      const v = props[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'value') el.value = v;
+      else if (k.slice(0, 2) === 'on' && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : String(v));
+    }
+  }
+  for (let i = 2; i < arguments.length; i++) appendKids(el, arguments[i]);
+  return el;
+}
+function appendKids(el, c) {
+  if (c === null || c === undefined || c === false) return;
+  if (Array.isArray(c)) { c.forEach(x => appendKids(el, x)); return; }
+  el.append(c.nodeType ? c : document.createTextNode(String(c)));
+}
+// re-render ส่วนหนึ่งของหน้า โดยคืน focus/cursor ให้ช่องที่กำลังพิมพ์อยู่ (อ้างอิงด้วย data-fk)
+function rerender(container, nodes) {
+  const ae = document.activeElement;
+  let saved = null;
+  if (ae && ae !== document.body && container.contains(ae) && ae.dataset && ae.dataset.fk) {
+    const isField = ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA';
+    saved = { fk: ae.dataset.fk, isField: isField, value: isField ? ae.value : null,
+      s: isField ? ae.selectionStart : null, e: isField ? ae.selectionEnd : null };
+  }
+  container.textContent = '';
+  appendKids(container, nodes);
+  if (!saved) return;
+  const el = Array.from(container.querySelectorAll('[data-fk]')).find(x => x.dataset.fk === saved.fk);
+  if (!el) return;
+  if (saved.isField) el.value = saved.value;
+  try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+  if (saved.isField && saved.s !== null) { try { el.setSelectionRange(saved.s, saved.e); } catch (e) { /* ignore */ } }
+}
+function findByFk(root, fk) { return Array.from(root.querySelectorAll('[data-fk]')).find(x => x.dataset.fk === fk) || null; }
+function flash(el) { if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+
+/* ช่องกรอกเงิน + ปุ่ม ± (ใช้ทั้งขั้นที่ 2 และ 3) */
+function moneyField(o) {
+  const input = h('input', {
+    id: o.id, class: 'money', type: 'text', inputmode: 'decimal', autocomplete: 'off',
+    enterkeyhint: o.enterkeyhint || 'done', placeholder: '0', 'aria-label': o.label, 'data-fk': o.fk,
+    value: satangToInput(o.get())
+  });
+  const steps = h('div', { class: 'stepper', role: 'group', 'aria-label': 'ปรับจำนวนเงิน' },
+    STEP_VALUES.map(d => h('button', {
+      type: 'button', class: 'step ' + (d < 0 ? 'minus' : 'plus'),
+      'aria-label': (d < 0 ? 'ลด ' : 'เพิ่ม ') + Math.abs(d) + ' บาท',
+      onclick: () => {
+        const v = clampMoney(o.get() + d * 100);   // ไม่ให้ติดลบ
+        input.value = satangToInput(v);
+        refresh(v);
+        o.set(v);
+      }
+    }, (d < 0 ? '−' : '+') + Math.abs(d))));
+  function refresh(v) { steps.querySelectorAll('.minus').forEach(b => { b.disabled = v <= 0; }); }
+  refresh(o.get());
+  input.addEventListener('input', () => {
+    const clean = sanitizeNum(input.value, 7);
+    if (clean !== input.value) input.value = clean;
+    const v = Math.min(parseHundredths(clean), MAX_SATANG);   // ลบจนว่าง = 0
+    refresh(v);
+    o.set(v);
+  });
+  input.addEventListener('blur', () => { input.value = satangToInput(o.get()); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); if (o.onEnter) o.onEnter(input); else input.blur(); }
+  });
+  const wrap = h('span', { class: 'money-wrap' }, h('span', { class: 'cur', 'aria-hidden': 'true' }, '฿'), input);
+  return { input: input, wrap: wrap, steps: steps };
+}
+
+/* =====================================================================
+   Render: แยกเป็นส่วนๆ — พิมพ์ตัวเลขจะอัปเดตแค่ยอด/ข้อความ ไม่สร้างช่องกรอกใหม่
+   ===================================================================== */
+function renderAll() {
+  renderSettings();
+  renderPeople();
+  renderPersonal();
+  renderDishes();
+  commit();
+}
+
+// เรียกทุกครั้งที่ข้อมูลเปลี่ยน: คำนวณใหม่ + อัปเดตส่วนที่ไม่มีช่องกรอก + บันทึก
+function commit() {
+  const r = calculate(state);
+  renderSummary(r);
+  renderSticky(r);
+  updateDishStatuses(r);
+  updateHeads(r);
+  saveState();
+  return r;
+}
+
+function renderSettings() {
+  $('scOn').checked = state.sc.on;
+  $('vatOn').checked = state.vat.on;
+  if (document.activeElement !== $('scRate')) $('scRate').value = rateLabel(state.sc.rate);
+  if (document.activeElement !== $('vatRate')) $('vatRate').value = rateLabel(state.vat.rate);
+  $('scRate').disabled = !state.sc.on;
+  $('vatRate').disabled = !state.vat.on;
+  const can = state.sc.on && state.vat.on;
+  const sw = $('vatAfterSc');
+  sw.checked = state.vat.afterSc;
+  sw.disabled = !can;
+  $('afterScRow').classList.toggle('is-disabled', !can);
+  $('vatModeHint').textContent = !can ? 'ใช้ได้เมื่อเลือกทั้ง Service charge และ VAT'
+    : state.vat.afterSc ? 'VAT คิดจาก ค่าอาหาร + Service charge' : 'VAT คิดจากค่าอาหารอย่างเดียว';
+}
+
+function renderPeople() {
+  const sel = new Set(state.selected);
+  const nodes = allNames(state).map(n => {
+    const on = sel.has(n);
+    const chip = h('button', {
+      type: 'button', class: 'chip' + (on ? ' on' : ''), 'aria-pressed': String(on), 'data-fk': 'p:' + n,
+      onclick: () => togglePerson(n)
+    }, h('span', { class: 'tick', 'aria-hidden': 'true' }, '✓'), h('span', { class: 'chip-label' }, n));
+    if (DEFAULT_NAMES.indexOf(n) !== -1) return chip;   // ชื่อ default: ไม่มีปุ่ม ×
+    return h('span', { class: 'chip-group' + (on ? ' on' : ''), 'data-custom': n }, chip,
+      h('button', { type: 'button', class: 'chip-x', 'aria-label': 'ลบชื่อ ' + n, 'data-fk': 'x:' + n, onclick: () => deleteCustom(n) }, '×'));
+  });
+  rerender($('peopleChips'), nodes);
+}
+
+function renderPersonal() {
+  const people = participants(state);
+  const list = $('personalList');
+  const nodes = people.length ? people.map((n, i) => {
+    const f = moneyField({
+      id: 'pv' + i, fk: 'pv:' + n, label: 'ค่าอาหารส่วนตัวของ ' + n,
+      get: () => state.personal[n] || 0,
+      set: v => { state.personal[n] = v; commit(); },
+      enterkeyhint: i < people.length - 1 ? 'next' : 'done',
+      onEnter: inp => {   // Enter = ไปช่องของคนถัดไป
+        const all = Array.from(list.querySelectorAll('input.money'));
+        const idx = all.indexOf(inp);
+        if (idx >= 0 && idx < all.length - 1) all[idx + 1].focus(); else inp.blur();
+      }
+    });
+    return h('div', { class: 'prow', 'data-person': n },
+      h('div', { class: 'row-top' }, h('label', { class: 'row-name', for: 'pv' + i }, n), f.wrap),
+      f.steps);
+  }) : h('p', { class: 'empty' }, 'แตะชื่อในขั้นที่ 1 เพื่อเลือกคนที่ร่วมกิน');
+  rerender(list, nodes);
+}
+
+function renderDishes() {
+  const people = participants(state);
+  rerender($('dishList'), state.dishes.map(d => d.confirmed ? dishConfirmedCard(d, people) : dishEditCard(d, people)));
+}
+
+function dishEditCard(d, people) {
+  const id = d.id;
+  const nameInput = h('input', {
+    class: 'dish-name', type: 'text', maxlength: '40', enterkeyhint: 'done', 'aria-label': 'ชื่อจาน', 'data-fk': 'dn:' + id, value: d.name
+  });
+  nameInput.addEventListener('input', () => { const x = findDish(id); if (x) { x.name = nameInput.value; commit(); } });
+  nameInput.addEventListener('blur', () => {
+    const x = findDish(id);
+    if (x && !nameInput.value.trim()) { x.name = 'จานที่ ' + x.seq; nameInput.value = x.name; commit(); }
+  });
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); } });
+
+  const money = moneyField({
+    id: 'da-' + id, fk: 'da:' + id, label: 'ราคาจาน ' + dishLabel(d),
+    get: () => { const x = findDish(id); return x ? x.amount : 0; },
+    set: v => { const x = findDish(id); if (x) { x.amount = v; commit(); } }
+  });
+  const sel = new Set(d.members);
+  const chips = people.length
+    ? people.map(n => h('button', {
+        type: 'button', class: 'chip sm' + (sel.has(n) ? ' on' : ''), 'aria-pressed': String(sel.has(n)), 'data-fk': 'dm:' + id + ':' + n,
+        onclick: () => toggleMember(id, n)
+      }, h('span', { class: 'tick', 'aria-hidden': 'true' }, '✓'), h('span', { class: 'chip-label' }, n)))
+    : h('p', { class: 'empty' }, 'ยังไม่ได้เลือกคนร่วมกินในขั้นที่ 1');
+  const memberCount = people.filter(n => sel.has(n)).length;
+
+  return h('article', { class: 'dish', 'data-dish': id },
+    h('div', { class: 'dish-head' }, nameInput,
+      h('button', { type: 'button', class: 'btn btn-sm btn-danger-outline', 'aria-label': 'ลบจาน ' + dishLabel(d), onclick: () => deleteDish(id) }, 'ลบ')),
+    d.warn ? h('p', { class: 'warn-inline' }, d.warn) : null,
+    h('div', { class: 'row-top' }, h('label', { class: 'row-name', for: 'da-' + id }, 'ราคาจาน'), money.wrap),
+    money.steps,
+    h('div', { class: 'members-head' },
+      h('span', null, 'คนร่วมจ่าย ', h('span', { class: 'muted' }, memberCount + '/' + people.length + ' คน')),
+      h('div', { class: 'mini' },
+        h('button', { type: 'button', class: 'btn btn-sm', 'data-fk': 'dall:' + id, disabled: !people.length, onclick: () => setMembers(id, participants(state)) }, 'ทั้งหมด'),
+        h('button', { type: 'button', class: 'btn btn-sm', 'data-fk': 'dclr:' + id, disabled: !people.length, onclick: () => setMembers(id, []) }, 'ล้าง'))),
+    h('div', { class: 'chips' }, chips),
+    h('p', { class: 'dish-status', 'data-role': 'split', id: 'ds-' + id, 'aria-live': 'polite' }),
+    h('button', { type: 'button', class: 'btn btn-primary block', 'data-role': 'confirm', 'aria-describedby': 'ds-' + id, onclick: () => confirmDish(id) }, 'ยืนยัน'));
+}
+
+function dishConfirmedCard(d, people) {
+  const id = d.id;
+  const names = people.filter(n => d.members.indexOf(n) !== -1);
+  return h('article', { class: 'dish confirmed', 'data-dish': id },
+    h('div', { class: 'dish-head' },
+      h('div', { class: 'dish-title' }, h('span', { class: 'ok-badge', 'aria-hidden': 'true' }, '✓'), h('span', { class: 'dish-title-text' }, dishLabel(d))),
+      h('div', { class: 'dish-amt' }, fmtMoney(d.amount))),
+    h('p', { class: 'dish-split', 'data-role': 'split' }),
+    h('p', { class: 'dish-members' }, names.join(', ')),
+    h('div', { class: 'dish-actions' },
+      h('button', { type: 'button', class: 'btn', 'data-fk': 'de:' + id, onclick: () => editDish(id) }, 'แก้ไข'),
+      h('button', { type: 'button', class: 'btn btn-danger-outline', onclick: () => deleteDish(id) }, 'ลบจาน')));
+}
+
+// อัปเดตข้อความ "หาร N คน คนละ X" และสถานะปุ่มยืนยัน โดยไม่สร้างการ์ดใหม่
+function updateDishStatuses(r) {
+  const list = $('dishList');
+  for (const d of state.dishes) {
+    const card = list.querySelector('[data-dish="' + d.id + '"]');
+    const info = r.dishes[d.id];
+    if (!card || !info) continue;
+    const split = card.querySelector('[data-role="split"]');
+    const okText = 'หาร ' + info.count + ' คน คนละ ' + fmtMoney(info.perPerson);
+    if (d.confirmed) { split.textContent = okText; continue; }
+    const reasons = [];
+    if (!(d.amount > 0)) reasons.push('ใส่ราคามากกว่า 0');
+    if (!info.count) reasons.push('เลือกคนร่วมจ่ายอย่างน้อย 1 คน');
+    split.textContent = reasons.length ? 'ยังยืนยันไม่ได้: ' + reasons.join(' และ') : okText;
+    split.classList.toggle('bad', reasons.length > 0);
+    card.querySelector('[data-role="confirm"]').disabled = reasons.length > 0;
+  }
+}
+
+function updateHeads(r) {
+  $('selCount').textContent = 'เลือกแล้ว ' + r.people.length + '/' + allNames(state).length + ' คน';
+  $('personalTotal').textContent = 'รวม ' + fmtMoney(r.people.reduce((a, p) => a + (state.personal[p.name] || 0), 0));
+  const counted = state.dishes.filter(d => r.dishes[d.id] && r.dishes[d.id].counted);
+  $('dishTotal').textContent = state.dishes.length
+    ? 'ยืนยัน ' + counted.length + '/' + state.dishes.length + ' จาน · ' + fmtMoney(counted.reduce((a, d) => a + d.amount, 0))
+    : 'ยังไม่มีจาน';
+  const today = thaiShortDate(new Date());
+  $('summaryDate').textContent = today;
+  $('todayLabel').textContent = 'มื้อวันที่ ' + today;
+}
+
+function scLabel() { return state.sc.on ? 'Service charge ' + rateLabel(state.sc.rate) + '%' : 'Service charge (ไม่คิด)'; }
+function vatLabel() { return state.vat.on ? 'VAT ' + rateLabel(state.vat.rate) + '%' : 'VAT (ไม่คิด)'; }
+function dlRow(label, satang, cls) {
+  return [h('dt', cls ? { class: cls } : null, label), h('dd', cls ? { class: cls } : null, fmtMoney(satang))];
+}
+
+function renderSummary(r) {
+  const nodes = [];
+  if (r.pending.length) {
+    nodes.push(h('div', { class: 'banner', role: 'alert' },
+      h('p', null, '⚠ มีจานส่วนกลางยังไม่ยืนยัน ' + r.pending.length + ' จาน (' + r.pending.map(p => p.name).join(', ') + ') — ยังไม่ถูกนำมาคิดในยอดด้านล่าง'),
+      h('button', { type: 'button', class: 'btn btn-sm', 'data-fk': 'goto', onclick: () => goToDish(r.pending[0].id) }, 'ไปที่จาน')));
+  }
+  if (!r.people.length) {
+    nodes.push(h('p', { class: 'empty' }, 'ยังไม่มีคนร่วมกิน — เลือกในขั้นที่ 1'));
+  } else {
+    // จอแคบ: การ์ดรายคน
+    nodes.push(h('div', { class: 'sum-cards' }, r.people.map(p => h('div', { class: 'pcard', 'data-person': p.name, 'data-total': fmtMoney(p.total) },
+      h('div', { class: 'pcard-head' },
+        h('span', { class: 'pname' }, p.name),
+        h('span', { class: 'ptotal' }, h('small', null, 'ยอดสุทธิที่ต้องจ่าย'), h('b', null, fmtMoney(p.total)))),
+      h('dl', { class: 'pdl' },
+        dlRow('ค่าอาหารส่วนตัว', p.personal),
+        dlRow('ค่าอาหารส่วนกลาง', p.shared),
+        dlRow('รวมก่อน Service charge/VAT', p.base, 'strong'),
+        dlRow(scLabel(), p.sc),
+        dlRow(vatLabel(), p.vat))))));
+    // จอกว้าง: ตาราง
+    const sc = state.sc.on ? 'SC ' + rateLabel(state.sc.rate) + '%' : 'SC';
+    const vat = state.vat.on ? 'VAT ' + rateLabel(state.vat.rate) + '%' : 'VAT';
+    nodes.push(h('div', { class: 'sum-table-wrap' }, h('table', { class: 'sum-table' },
+      h('thead', null, h('tr', null, ['ชื่อ', 'ส่วนตัว', 'ส่วนกลาง', 'ก่อน SC/VAT', sc, vat, 'ยอดสุทธิ'].map(t => h('th', { scope: 'col' }, t)))),
+      h('tbody', null, r.people.map(p => h('tr', null,
+        h('td', null, p.name), h('td', null, fmtMoney(p.personal)), h('td', null, fmtMoney(p.shared)), h('td', null, fmtMoney(p.base)),
+        h('td', null, fmtMoney(p.sc)), h('td', null, fmtMoney(p.vat)), h('td', { class: 'net' }, fmtMoney(p.total))))),
+      h('tfoot', null, h('tr', null, h('td', null, 'ทั้งบิล'), h('td', null, ''), h('td', null, ''), h('td', null, fmtMoney(r.bill.food)),
+        h('td', null, fmtMoney(r.bill.sc)), h('td', null, fmtMoney(r.bill.vat)), h('td', { class: 'net' }, fmtMoney(r.bill.total)))))));
+  }
+  // ยอดรวมทั้งบิล (ไว้เทียบใบเสร็จร้าน)
+  const b = r.bill;
+  nodes.push(h('div', { class: 'bill' },
+    h('h3', { class: 'bill-title' }, 'ยอดรวมทั้งบิล ', h('small', null, '(ไว้เทียบกับใบเสร็จของร้าน)')),
+    h('dl', { class: 'pdl' }, dlRow('ค่าอาหารรวม', b.food), dlRow(scLabel(), b.sc), dlRow(vatLabel(), b.vat)),
+    h('div', { class: 'bill-total' }, h('span', null, 'รวมทั้งบิล'), h('span', { class: 'bill-amt', id: 'billTotal' }, fmtMoney(b.total) + ' บาท')),
+    h('div', { class: 'collected' }, h('span', null, 'ยอดที่เก็บจากทุกคนรวมกัน'), h('span', { id: 'collectedTotal' }, fmtMoney(b.collected) + ' บาท')),
+    b.diff > 0 ? h('p', { class: 'diff', id: 'roundDiff' }, 'เศษจากการปัดขึ้น +' + fmtMoney(b.diff) + ' บาท') : null,
+    h('p', { class: 'footnote' }, 'คำนวณละเอียดเต็มแล้วปัดขึ้นเป็นสตางค์ทีละช่องตอนแสดงผล ตัวเลขย่อยบวกกันจึงอาจต่างจากยอดสุทธิได้ 1–2 สตางค์')));
+  rerender($('summaryBody'), nodes);
+}
+
+function renderSticky(r) {
+  $('stickyAmt').textContent = fmtMoney(r.bill.total);
+  $('stickyMeta').textContent = 'รวมทั้งบิล · ' + r.people.length + ' คน';
+  const pb = $('stickyPending');
+  pb.hidden = !r.pending.length;
+  pb.textContent = 'ค้างยืนยัน ' + r.pending.length + ' จาน';
+}
+
+/* =====================================================================
+   Actions
+   ===================================================================== */
+function findDish(id) { return state.dishes.find(d => d.id === id) || null; }
+function snapshot() { return JSON.stringify(state); }
+function restore(json) { state = parseState(json); renderAll(); }
+function afterPeopleChange() { renderPeople(); renderPersonal(); renderDishes(); commit(); }
+
+// เอาคนออกจากทุกจาน แล้วหารใหม่ ถ้าจานที่ยืนยันแล้วไม่เหลือคน → กลับเป็น "ยังไม่ยืนยัน"
+function removeFromDishes(nameSet) {
+  const affected = [], emptied = [];
+  for (const d of state.dishes) {
+    const before = d.members.length;
+    d.members = d.members.filter(m => !nameSet.has(m));
+    if (d.members.length === before) continue;
+    affected.push(d);
+    if (!d.members.length && d.confirmed) { d.confirmed = false; d.warn = WARN_EMPTY; emptied.push(d); }
+  }
+  return { affected: affected, emptied: emptied };
+}
+function dishChangeMsg(res) {
+  if (!res.affected.length) return '';
+  return ' · เอาออกจาก ' + res.affected.length + ' จาน' + (res.emptied.length ? ' (' + res.emptied.length + ' จานกลับเป็นยังไม่ยืนยัน)' : '');
+}
+
+function togglePerson(n) {
+  if (state.selected.indexOf(n) === -1) { state.selected.push(n); afterPeopleChange(); return; }
+  const snap = snapshot();
+  state.selected = state.selected.filter(x => x !== n);   // ค่าอาหารส่วนตัวยังเก็บไว้
+  const res = removeFromDishes(new Set([n]));
+  afterPeopleChange();
+  if (res.affected.length) showToast('ไม่ได้เลือก ' + n + dishChangeMsg(res), { undo: snap });
+}
+function selectAll() { state.selected = allNames(state).slice(); afterPeopleChange(); }
+function selectNone() {
+  if (!state.selected.length) return;
+  const snap = snapshot();
+  const set = new Set(state.selected);
+  state.selected = [];
+  const res = removeFromDishes(set);
+  afterPeopleChange();
+  showToast('ล้างการเลือกแล้ว' + dishChangeMsg(res), { undo: snap });
+}
+function deleteCustom(n) {
+  const snap = snapshot();
+  state.customNames = state.customNames.filter(x => x !== n);
+  state.selected = state.selected.filter(x => x !== n);
+  delete state.personal[n];                                  // ลบข้อมูลถาวร
+  const res = removeFromDishes(new Set([n]));
+  afterPeopleChange();
+  showToast('ลบ ' + n + ' แล้ว' + dishChangeMsg(res), { undo: snap });
+}
+function addName() {
+  const input = $('newName');
+  const err = $('nameError');
+  const n = normName(input.value);
+  if (!n) { err.textContent = 'พิมพ์ชื่อก่อนกดเพิ่ม'; input.focus(); return; }
+  const exist = allNames(state).find(x => nameKey(x) === nameKey(n));
+  if (exist) {
+    err.textContent = 'มีชื่อ "' + exist + '" อยู่แล้ว';
+    const chip = findByFk($('peopleChips'), 'p:' + exist);
+    flash(chip && chip.closest('.chip-group') || chip);
+    return;
+  }
+  state.customNames.push(n);
+  state.selected.push(n);          // ชื่อใหม่ถูกเลือกอัตโนมัติ
+  input.value = '';
+  err.textContent = '';
+  afterPeopleChange();
+  input.focus();
+}
+
+function addDish() {
+  state.dishSeq += 1;
+  const d = {
+    id: 'd' + state.dishSeq, seq: state.dishSeq, name: 'จานที่ ' + state.dishSeq, amount: 0,
+    members: NEW_DISH_SELECT_ALL ? participants(state) : [], confirmed: false, warn: null
+  };
+  state.dishes.push(d);
+  renderDishes();
+  commit();
+  const inp = findByFk($('dishList'), 'da:' + d.id);
+  if (inp) inp.focus();
+}
+function deleteDish(id) {
+  const d = findDish(id);
+  if (!d) return;
+  const snap = snapshot();
+  state.dishes = state.dishes.filter(x => x.id !== id);
+  renderDishes();
+  commit();
+  showToast('ลบ ' + dishLabel(d) + ' แล้ว', { undo: snap });
+}
+function toggleMember(id, n) {
+  const d = findDish(id);
+  if (!d) return;
+  d.members = d.members.indexOf(n) === -1 ? d.members.concat(n) : d.members.filter(x => x !== n);
+  d.warn = null;
+  renderDishes();
+  commit();
+}
+function setMembers(id, list) {
+  const d = findDish(id);
+  if (!d) return;
+  d.members = list.slice();
+  d.warn = null;
+  renderDishes();
+  commit();
+}
+function confirmDish(id) {
+  const d = findDish(id);
+  if (!d) return;
+  const inBill = new Set(state.selected);
+  d.members = d.members.filter(n => inBill.has(n));
+  if (!(d.amount > 0) || !d.members.length) return;
+  d.confirmed = true;
+  d.warn = null;
+  renderDishes();
+  commit();
+}
+function editDish(id) {
+  const d = findDish(id);
+  if (!d) return;
+  d.confirmed = false;   // ระหว่างแก้ จานนี้จะไม่ถูกนำไปคิดจนกว่าจะยืนยันใหม่
+  renderDishes();
+  commit();
+}
+function goToDish(id) {
+  const card = $('dishList').querySelector('[data-dish="' + id + '"]');
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  flash(card);
+}
+function newBill() {
+  openModal({
+    title: 'เริ่มบิลใหม่?',
+    body: 'จะล้างคนที่เลือก ค่าอาหารทั้งหมด จานส่วนกลาง และตั้ง Service charge/VAT กลับเป็นค่าเริ่มต้น — รายชื่อที่เพิ่มไว้จะยังอยู่',
+    actions: [
+      { label: 'ยกเลิก', onClick: closeModal },
+      { label: 'ล้างแล้วเริ่มใหม่', kind: 'danger', onClick: () => {
+        state = freshBill(state.customNames.slice());
+        closeModal();
+        renderAll();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showToast('เริ่มบิลใหม่แล้ว');
+      } }
+    ]
+  });
+}
+
+/* =====================================================================
+   คัดลอกสรุป: clipboard API → execCommand → กล่องให้กดค้างคัดลอกเอง
+   ===================================================================== */
+function onCopy() {
+  const r = calculate(state);
+  if (!r.people.length) { showToast('ยังไม่ได้เลือกคนร่วมกิน'); return; }
+  const text = buildCopyText(state, r, new Date());
+  if (!r.pending.length) { copyText(text); return; }
+  openModal({
+    title: 'ยังมีจานค้างยืนยัน',
+    body: 'จานส่วนกลาง ' + r.pending.length + ' จาน (' + r.pending.map(p => p.name).join(', ') + ') ยังไม่ได้กดยืนยัน จึงไม่ถูกรวมในยอดที่จะคัดลอก',
+    actions: [
+      { label: 'กลับไปแก้', onClick: () => { closeModal(); goToDish(r.pending[0].id); } },
+      { label: 'คัดลอกต่อ', kind: 'primary', onClick: () => { closeModal(); copyText(text); } }
+    ]
+  });
+}
+function copyText(text) {
+  const done = () => showToast('คัดลอกแล้ว');
+  const fallback = () => { if (legacyCopy(text)) done(); else openManualCopy(text); };
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+    let settled = false;
+    const timer = setTimeout(() => { if (!settled) { settled = true; fallback(); } }, 1500);   // กันกรณี promise ค้าง
+    navigator.clipboard.writeText(text).then(
+      () => { if (!settled) { settled = true; clearTimeout(timer); done(); } },
+      () => { if (!settled) { settled = true; clearTimeout(timer); fallback(); } });
+  } else {
+    fallback();
+  }
+}
+function legacyCopy(text) {
+  const prev = document.activeElement;
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0';
+  document.body.appendChild(ta);
+  let ok = false;
+  try {
+    ta.removeAttribute('readonly');   // iOS ต้องไม่ readonly ตอน select
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    ta.setAttribute('readonly', '');
+    ok = document.execCommand('copy');
+  } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  if (prev && prev.focus && prev !== document.body) { try { prev.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
+  return !!ok;
+}
+function openManualCopy(text) {
+  const ta = h('textarea', { class: 'copy-box', readonly: true, rows: String(Math.min(12, text.split('\n').length + 1)), 'aria-label': 'ข้อความสรุป', 'data-autofocus': true });
+  ta.value = text;
+  openModal({
+    title: 'คัดลอกเอง',
+    body: h('div', null, h('p', { class: 'modal-text' }, 'เบราว์เซอร์นี้ไม่ให้คัดลอกอัตโนมัติ — กดค้างที่ข้อความด้านล่าง แล้วเลือก "คัดลอก"'), ta),
+    actions: [
+      { label: 'ปิด', onClick: closeModal },
+      { label: 'ลองคัดลอกอีกครั้ง', kind: 'primary', onClick: () => {
+        if (legacyCopy(text)) { closeModal(); showToast('คัดลอกแล้ว'); }
+        else { ta.focus(); ta.select(); try { ta.setSelectionRange(0, text.length); } catch (e) { /* ignore */ } }
+      } }
+    ]
+  });
+  try { ta.select(); ta.setSelectionRange(0, text.length); } catch (e) { /* ignore */ }
+}
+
+/* ===== Toast / Modal ===== */
+let toastTimer = null;
+function showToast(msg, opts) {
+  opts = opts || {};
+  const t = $('toast');
+  t.textContent = '';
+  t.append(h('span', null, msg));
+  t.classList.toggle('has-action', !!opts.undo);
+  if (opts.undo) {
+    const snap = opts.undo;
+    t.append(h('button', { type: 'button', class: 'toast-btn', onclick: () => { restore(snap); showToast('เลิกทำแล้ว'); } }, 'เลิกทำ'));
+  }
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), opts.undo ? 5000 : 2000);
+}
+let modalReturn = null;
+function openModal(o) {
+  const box = $('modalBox');
+  modalReturn = document.activeElement;
+  box.textContent = '';
+  box.append(h('h3', { class: 'modal-title', id: 'modalTitle' }, o.title));
+  if (o.body) box.append(o.body.nodeType ? o.body : h('p', { class: 'modal-text' }, o.body));
+  box.append(h('div', { class: 'modal-actions' }, o.actions.map(a => h('button', {
+    type: 'button', class: 'btn' + (a.kind === 'primary' ? ' btn-primary' : a.kind === 'danger' ? ' btn-danger' : ''), onclick: a.onClick
+  }, a.label))));
+  $('modal').hidden = false;
+  document.body.classList.add('modal-open');
+  const first = box.querySelector('[data-autofocus]') || box.querySelector('.modal-actions .btn:last-child');
+  if (first) { try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); } }
+}
+function closeModal() {
+  $('modal').hidden = true;
+  document.body.classList.remove('modal-open');
+  if (modalReturn && modalReturn.focus && document.contains(modalReturn)) { try { modalReturn.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
+  modalReturn = null;
+}
+
+/* =====================================================================
+   ผูก event ของส่วนที่เป็น HTML คงที่
+   ===================================================================== */
+function bindRate(input, key) {
+  input.addEventListener('input', () => {
+    let clean = sanitizeNum(input.value, 3);
+    let v = parseHundredths(clean);
+    if (v > 10000) { v = 10000; clean = '100'; }   // รับ 0–100
+    if (clean !== input.value) input.value = clean;
+    state[key].rate = v;
+    commit();
+  });
+  input.addEventListener('blur', () => { input.value = rateLabel(state[key].rate); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+}
+function init() {
+  $('scOn').addEventListener('change', e => { state.sc.on = e.target.checked; renderSettings(); commit(); });
+  $('vatOn').addEventListener('change', e => { state.vat.on = e.target.checked; renderSettings(); commit(); });
+  $('vatAfterSc').addEventListener('change', e => { state.vat.afterSc = e.target.checked; renderSettings(); commit(); });
+  bindRate($('scRate'), 'sc');
+  bindRate($('vatRate'), 'vat');
+  $('selAllBtn').addEventListener('click', selectAll);
+  $('selNoneBtn').addEventListener('click', selectNone);
+  $('addForm').addEventListener('submit', e => { e.preventDefault(); addName(); });
+  $('newName').addEventListener('input', () => { $('nameError').textContent = ''; });
+  $('addDishBtn').addEventListener('click', addDish);
+  $('copyBtnMain').addEventListener('click', onCopy);
+  $('copyBtnSticky').addEventListener('click', onCopy);
+  $('newBillBtn').addEventListener('click', newBill);
+  $('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('modal').hidden) closeModal(); });
+  renderAll();
+}
+
+/* ===== Self-test (เปิด console แล้วพิมพ์ SplitBill.runSelfTests()) ===== */
+function runSelfTests() {
+  const out = [];
+  const t = (name, got, exp) => out.push({ name: name, pass: got === exp, got: got, exp: exp });
+  const sample = afterSc => {
+    const s = freshBill(['เอ', 'บี', 'ซี']);
+    s.selected = ['เอ', 'บี', 'ซี'];
+    s.personal['เอ'] = 20000; s.personal['บี'] = 15000; s.personal['ซี'] = 0;
+    s.dishes = [{ id: 'd1', seq: 1, name: 'ต้มยำ', amount: 30000, members: ['เอ', 'บี', 'ซี'], confirmed: true, warn: null }];
+    s.dishSeq = 1;
+    s.vat.afterSc = afterSc;
+    return s;
+  };
+  let r = calculate(sample(true));
+  t('base เอ/บี/ซี', r.people.map(p => fmtMoney(p.base)).join(' '), '300.00 250.00 100.00');
+  t('VAT หลัง SC: รายคน', r.people.map(p => fmtMoney(p.total)).join(' '), '353.10 294.25 117.70');
+  t('VAT หลัง SC: รวมทั้งบิล', fmtMoney(r.bill.total), '765.05');
+  t('VAT หลัง SC: เก็บจริง', fmtMoney(r.bill.collected), '765.05');
+  t('ข้อความคัดลอก', buildCopyText(sample(true), r, new Date(2026, 10, 5)),
+    'สรุปค่าอาหาร 5 พ.ย. 69\nเอ 353.10 บาท\nบี 294.25 บาท\nซี 117.70 บาท\nรวมทั้งบิล 765.05 บาท (รวม SC 10% และ VAT 7%)');
+  r = calculate(sample(false));
+  t('VAT จากค่าอาหาร: รายคน', r.people.map(p => fmtMoney(p.total)).join(' '), '351.00 292.50 117.00');
+  t('VAT จากค่าอาหาร: รวมทั้งบิล', fmtMoney(r.bill.total), '760.50');
+  const s3 = freshBill(['เอ', 'บี', 'ซี']);
+  s3.selected = ['เอ', 'บี', 'ซี'];
+  s3.sc.on = false; s3.vat.on = false;
+  s3.dishes = [{ id: 'd1', seq: 1, name: 'x', amount: 10000, members: ['เอ', 'บี', 'ซี'], confirmed: true, warn: null }];
+  r = calculate(s3);
+  t('100 ÷ 3 (ต่อจาน)', fmtMoney(r.dishes.d1.perPerson), '33.34');
+  t('100 ÷ 3 (ยอดคน)', fmtMoney(r.people[0].total), '33.34');
+  t('100 ÷ 3 รวมทั้งบิล', fmtMoney(r.bill.total), '100.00');
+  t('100 ÷ 3 เศษปัดขึ้น', fmtMoney(r.bill.diff), '0.02');
+  t('ปัดขึ้น 33.3333', fmtMoney(fCeil(F(333333n, 100n))), '33.34');
+  t('ปัดขึ้น 117.701', fmtMoney(fCeil(F(117701n, 10n))), '117.71');
+  t('JS ธรรมดาได้ 765.06 (ตัวอย่างปัญหา)', Math.ceil(650 * 1.1 * 1.07 * 100) / 100, 765.06);
+  return out;
+}
+window.SplitBill = { calculate: calculate, buildCopyText: buildCopyText, runSelfTests: runSelfTests, fmtMoney: fmtMoney, freshBill: freshBill, getState: () => state };
+
+init();
+</script>
+</body>
+</html>
