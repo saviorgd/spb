@@ -107,26 +107,32 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:var(--primary);b
 .field-error{color:var(--danger);font-size:14px;margin:6px 2px 0}
 .field-error:empty{display:none}
 
-/* แถวกรอกเงิน + ปุ่ม ± */
+/* แถวกรอกเงิน + แป้นตัวเลข */
 .prow{padding:12px 0;border-top:1px solid var(--line)}
 .prow:first-child{border-top:0;padding-top:4px}
 .row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.row-label{display:flex;flex-direction:column;flex:1;min-width:0}
 .row-name{font-weight:600;font-size:17px;min-width:0;overflow-wrap:anywhere}
+/* ประวัติที่กด เช่น 47 + 189 + 98 (ตัวเล็กจาง) */
+.hist{margin:0;font-size:12.5px;line-height:1.35;color:var(--muted);opacity:.85;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.hist:empty{display:none}
 .money-wrap{position:relative;flex:none}
 .money-wrap .cur{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
 .money{width:140px;height:48px;border:1.5px solid var(--line);border-radius:12px;background:var(--field);text-align:right;padding:0 12px 0 28px;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
 .money::placeholder{color:var(--muted);opacity:.55;font-weight:500}
-.stepper{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
-.step{min-height:44px;min-width:0;padding:0;border-radius:10px;border:1px solid;font-size:13.5px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow:hidden}
-.step.minus{color:var(--minus);background:var(--minus-soft);border-color:var(--minus-line)}
-.step.plus{color:var(--plus);background:var(--plus-soft);border-color:var(--plus-line)}
-.step:disabled{opacity:.35}
-.step:active:not(:disabled){filter:brightness(.92)}
+/* แป้น 2 แถว: [1 2 3 4 5 ⌫ C] / [6 7 8 9 0 + +] */
+.keypad{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.key{min-height:44px;min-width:0;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;overflow:hidden}
+.key.op{color:var(--muted)}
+.key.clr{color:var(--minus);background:var(--minus-soft);border-color:var(--minus-line);font-size:17px}
+.key.add{grid-column:span 2;color:var(--plus);background:var(--plus-soft);border-color:var(--plus-line);font-size:24px}
+.key:disabled{opacity:.35}
+.key:active:not(:disabled){filter:brightness(.92)}
 
 /* จานส่วนกลาง */
 .dish{border:1.5px solid var(--line);border-radius:14px;padding:12px 8px;margin-bottom:10px;background:var(--card)}
-.dish .stepper{gap:3px}
-.dish .step{font-size:12.5px;letter-spacing:-.04em}
+.dish .keypad{gap:3px}
+.dish-bd{text-align:right;margin:-6px 0 8px}
 .dish.confirmed{background:var(--primary-soft);border-color:var(--primary-line)}
 .dish-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .dish-name{flex:1;min-width:0;height:44px;border:1.5px solid var(--line);border-radius:10px;padding:0 10px;background:var(--field);font-weight:700;font-size:16px}
@@ -257,7 +263,7 @@ body.modal-open{overflow:hidden}
       <h2 id="h2"><span class="num">2</span>ค่าอาหารส่วนตัว</h2>
       <span class="pill" id="personalTotal"></span>
     </div>
-    <p class="hint">อาหารที่แต่ละคนกินคนเดียว</p>
+    <p class="hint">อาหารที่แต่ละคนกินคนเดียว — กดราคาแล้วกด + เพื่อบวกรายการถัดไป</p>
     <div id="personalList"></div>
   </section>
 
@@ -305,7 +311,6 @@ const DEFAULT_NAMES = ['จุ่น', 'อะตอม', 'โบ', 'ฮิม',
 const DEFAULT_SC_PERCENT = 10;
 const DEFAULT_VAT_PERCENT = 7;
 const NEW_DISH_SELECT_ALL = true;   // จานใหม่ติ๊กทุกคนที่ร่วมกินไว้ก่อน (เปลี่ยนเป็น false ถ้าอยากให้เริ่มว่าง)
-const STEP_VALUES = [-100, -10, -2, -1, 1, 2, 10, 100];
 const MAX_SATANG = 999999999;       // สูงสุด 9,999,999.99 บาท
 const NAME_MAX = 20;
 const STORAGE_KEY = 'split-bill:v1';
@@ -346,9 +351,60 @@ function parseHundredths(s) {
   const parts = s.split('.');
   return parseInt(parts[0] || '0', 10) * 100 + parseInt(((parts[1] || '') + '00').slice(0, 2), 10);
 }
-function clampMoney(v) { return Math.max(0, Math.min(MAX_SATANG, v)); }
 function thaiShortDate(d) {
   return d.getDate() + ' ' + TH_MONTHS[d.getMonth()] + ' ' + String((d.getFullYear() + 543) % 100).padStart(2, '0');
+}
+
+/* =====================================================================
+   แป้นตัวเลขแบบเครื่องคิดเลข: เก็บเป็น entry = { t: [...], c: '...' }
+     t = รายการที่กด + แล้ว (สตางค์)  c = ตัวเลขที่กำลังพิมพ์อยู่ (ข้อความ)
+   เช่น กด 47 + 189 + 98 → { t: [4700, 18900], c: '98' } ยอด = 334
+   ===================================================================== */
+function emptyEntry() { return { t: [], c: '' }; }
+function entryTotal(e) { return e.t.reduce((a, x) => a + x, 0) + parseHundredths(e.c); }
+function entryFromAmount(v) { return { t: [], c: satangToInput(v) }; }
+function isEmptyEntry(e) { return !e.t.length && !e.c; }
+// key: '0'–'9', '+', 'back' (⌫), 'C' — คืน object เดิมถ้าไม่มีอะไรเปลี่ยน
+function entryPress(e, key) {
+  if (key === 'C') return isEmptyEntry(e) ? e : emptyEntry();
+  if (key === '+') {
+    if (!e.c) return e;
+    const v = parseHundredths(e.c);
+    return { t: v > 0 ? e.t.concat(v) : e.t, c: '' };   // กด + ตอนเป็น 0 = ไม่เพิ่มรายการ
+  }
+  if (key === 'back') {
+    if (e.c) return { t: e.t, c: e.c.slice(0, -1) };
+    if (e.t.length) return { t: e.t.slice(0, -1), c: satangToInput(e.t[e.t.length - 1]) };   // ดึงรายการล่าสุดกลับมาแก้
+    return e;
+  }
+  const c = sanitizeNum(e.c + key, 7);
+  if (c === e.c) return e;
+  const next = { t: e.t, c: c };
+  return entryTotal(next) <= MAX_SATANG ? next : e;
+}
+function numText(s) {
+  const p = s.split('.');
+  return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (p.length > 1 ? '.' + p[1] : '');
+}
+// "47 + 189 + 98" — final = true: ตัด + ท้ายและ 0 ที่ค้างพิมพ์ออก (ใช้ในการ์ดที่ยืนยันแล้ว)
+function entryParts(e, final) {
+  const parts = e.t.map(v => numText(satangToInput(v)));
+  if (e.c && !(final && parseHundredths(e.c) === 0)) parts.push(numText(e.c));
+  return parts;
+}
+function entryText(e, final) {
+  return entryParts(e, final).join(' + ') + (!final && e.t.length && !e.c ? ' +' : '');
+}
+// ตรวจ entry ที่อ่านจาก localStorage ถ้าไม่ตรงกับยอด ก็สร้างจากยอดแทน
+function cleanEntry(raw, amount) {
+  const ok = raw && typeof raw === 'object' && Array.isArray(raw.t) && raw.t.length <= 500
+    && raw.t.every(x => Number.isInteger(x) && x > 0 && x <= MAX_SATANG)
+    && typeof raw.c === 'string' && sanitizeNum(raw.c, 7) === raw.c;
+  if (ok) {
+    const e = { t: raw.t.slice(), c: raw.c };
+    if (entryTotal(e) === amount) return e;
+  }
+  return entryFromAmount(amount);
 }
 
 /* ===== เศษส่วนแบบ BigInt: คำนวณละเอียดเต็ม ไม่มีปัญหา floating point =====
@@ -434,7 +490,8 @@ function freshBill(customNames) {
     customNames: customNames || [],
     selected: [],
     personal: Object.create(null),   // ชื่อ → สตางค์ (เก็บไว้แม้ไม่ได้เลือกคนนั้น)
-    dishes: [],                       // { id, seq, name, amount, members[], confirmed, warn }
+    personalEntry: Object.create(null),   // ชื่อ → entry ที่กดจากแป้น (ยอดรวม = personal[ชื่อ])
+    dishes: [],                       // { id, seq, name, amount, entry, members[], confirmed, warn }
     dishSeq: 0,
     sc: { on: true, rate: DEFAULT_SC_PERCENT * 100 },
     vat: { on: true, rate: DEFAULT_VAT_PERCENT * 100, afterSc: true }
@@ -458,7 +515,12 @@ function parseState(raw) {
   const all = new Set(allNames(s));
   if (Array.isArray(d.selected)) s.selected = Array.from(new Set(d.selected)).filter(n => all.has(n));
   if (d.personal && typeof d.personal === 'object') {
-    for (const k of Object.keys(d.personal)) if (all.has(k) && okInt(d.personal[k])) s.personal[k] = Math.min(d.personal[k], MAX_SATANG);
+    const pe = d.personalEntry && typeof d.personalEntry === 'object' ? d.personalEntry : {};
+    for (const k of Object.keys(d.personal)) {
+      if (!all.has(k) || !okInt(d.personal[k])) continue;
+      s.personal[k] = Math.min(d.personal[k], MAX_SATANG);
+      s.personalEntry[k] = cleanEntry(Object.prototype.hasOwnProperty.call(pe, k) ? pe[k] : null, s.personal[k]);
+    }
   }
   const sel = new Set(s.selected);
   let maxSeq = 0;
@@ -470,7 +532,7 @@ function parseState(raw) {
       const confirmed = x.confirmed === true && amount > 0 && members.length > 0;
       s.dishes.push({
         id: 'd' + x.seq, seq: x.seq, name: typeof x.name === 'string' ? x.name.slice(0, 40) : '',
-        amount: amount, members: members, confirmed: confirmed,
+        amount: amount, entry: cleanEntry(x.entry, amount), members: members, confirmed: confirmed,
         warn: (x.confirmed === true && !confirmed) ? WARN_EMPTY : (typeof x.warn === 'string' ? x.warn : null)
       });
       maxSeq = Math.max(maxSeq, x.seq);
@@ -544,39 +606,66 @@ function rerender(container, nodes) {
 function findByFk(root, fk) { return Array.from(root.querySelectorAll('[data-fk]')).find(x => x.dataset.fk === fk) || null; }
 function flash(el) { if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
 
-/* ช่องกรอกเงิน + ปุ่ม ± (ใช้ทั้งขั้นที่ 2 และ 3) */
+/* ช่องกรอกเงิน + แป้นตัวเลข (ใช้ทั้งขั้นที่ 2 และ 3)
+   o.get() คืน entry, o.set(entry) บันทึก, o.clearMsg() ข้อความ toast ตอนกด C */
+const KEYPAD = [
+  { k: '1' }, { k: '2' }, { k: '3' }, { k: '4' }, { k: '5' },
+  { k: 'back', t: '⌫', cls: 'op', label: 'ลบตัวท้าย' },
+  { k: 'C', t: 'C', cls: 'clr', label: 'ล้างราคานี้ทั้งหมด' },
+  { k: '6' }, { k: '7' }, { k: '8' }, { k: '9' }, { k: '0' },
+  { k: '+', t: '+', cls: 'add', label: 'บวก แล้วกดราคารายการถัดไป' }
+];
 function moneyField(o) {
+  const histId = o.id + '-h';
   const input = h('input', {
     id: o.id, class: 'money', type: 'text', inputmode: 'decimal', autocomplete: 'off',
-    enterkeyhint: o.enterkeyhint || 'done', placeholder: '0', 'aria-label': o.label, 'data-fk': o.fk,
-    value: satangToInput(o.get())
+    enterkeyhint: o.enterkeyhint || 'done', placeholder: '0', 'aria-label': o.label, 'aria-describedby': histId, 'data-fk': o.fk,
+    value: satangToInput(entryTotal(o.get()))
   });
-  const steps = h('div', { class: 'stepper', role: 'group', 'aria-label': 'ปรับจำนวนเงิน' },
-    STEP_VALUES.map(d => h('button', {
-      type: 'button', class: 'step ' + (d < 0 ? 'minus' : 'plus'),
-      'aria-label': (d < 0 ? 'ลด ' : 'เพิ่ม ') + Math.abs(d) + ' บาท',
-      onclick: () => {
-        const v = clampMoney(o.get() + d * 100);   // ไม่ให้ติดลบ
-        input.value = satangToInput(v);
-        refresh(v);
-        o.set(v);
-      }
-    }, (d < 0 ? '−' : '+') + Math.abs(d))));
-  function refresh(v) { steps.querySelectorAll('.minus').forEach(b => { b.disabled = v <= 0; }); }
+  const hist = h('p', { class: 'hist', id: histId });
+  const pad = h('div', { class: 'keypad', role: 'group', 'aria-label': 'แป้นตัวเลข' },
+    KEYPAD.map(x => h('button', {
+      type: 'button', class: 'key' + (x.cls ? ' ' + x.cls : ''), 'aria-label': x.label || null,
+      onclick: () => press(x.k)
+    }, x.t || x.k)));
+  let dirty = false;   // พิมพ์ในช่องเองตั้งแต่ focus ล่าสุด
+  function refresh(e) {
+    hist.textContent = entryText(e);
+    const empty = isEmptyEntry(e);
+    pad.querySelectorAll('.op, .clr').forEach(b => { b.disabled = empty; });
+  }
+  function apply(e) { refresh(e); o.set(e); }
+  function press(k) {
+    const before = o.get();
+    const next = entryPress(before, k);
+    if (next === before) return;
+    const snap = k === 'C' ? snapshot() : null;
+    input.value = satangToInput(entryTotal(next));
+    apply(next);
+    if (snap) showToast(o.clearMsg ? o.clearMsg() : 'ล้างราคาแล้ว', { undo: snap });
+  }
   refresh(o.get());
+  // พิมพ์เองในช่อง = แทนที่รายการที่กดไว้ทั้งหมดด้วยตัวเลขที่พิมพ์
   input.addEventListener('input', () => {
     const clean = sanitizeNum(input.value, 7);
     if (clean !== input.value) input.value = clean;
-    const v = Math.min(parseHundredths(clean), MAX_SATANG);   // ลบจนว่าง = 0
-    refresh(v);
-    o.set(v);
+    dirty = true;
+    apply({ t: [], c: clean });   // ลบจนว่าง = 0
   });
-  input.addEventListener('blur', () => { input.value = satangToInput(o.get()); });
+  input.addEventListener('blur', () => {
+    const e = o.get();
+    if (dirty && e.c) {   // จัดรูปที่พิมพ์ไว้ เช่น "12.5" → "12.50", "0" → ว่าง
+      const nc = satangToInput(parseHundredths(e.c));
+      if (nc !== e.c) apply({ t: e.t, c: nc });
+    }
+    dirty = false;
+    input.value = satangToInput(entryTotal(o.get()));
+  });
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); if (o.onEnter) o.onEnter(input); else input.blur(); }
   });
   const wrap = h('span', { class: 'money-wrap' }, h('span', { class: 'cur', 'aria-hidden': 'true' }, '฿'), input);
-  return { input: input, wrap: wrap, steps: steps };
+  return { input: input, wrap: wrap, hist: hist, pad: pad };
 }
 
 /* =====================================================================
@@ -638,8 +727,9 @@ function renderPersonal() {
   const nodes = people.length ? people.map((n, i) => {
     const f = moneyField({
       id: 'pv' + i, fk: 'pv:' + n, label: 'ค่าอาหารส่วนตัวของ ' + n,
-      get: () => state.personal[n] || 0,
-      set: v => { state.personal[n] = v; commit(); },
+      get: () => state.personalEntry[n] || entryFromAmount(state.personal[n] || 0),
+      set: e => { state.personalEntry[n] = e; state.personal[n] = entryTotal(e); commit(); },
+      clearMsg: () => 'ล้างค่าอาหารของ ' + n + ' แล้ว',
       enterkeyhint: i < people.length - 1 ? 'next' : 'done',
       onEnter: inp => {   // Enter = ไปช่องของคนถัดไป
         const all = Array.from(list.querySelectorAll('input.money'));
@@ -648,8 +738,8 @@ function renderPersonal() {
       }
     });
     return h('div', { class: 'prow', 'data-person': n },
-      h('div', { class: 'row-top' }, h('label', { class: 'row-name', for: 'pv' + i }, n), f.wrap),
-      f.steps);
+      h('div', { class: 'row-top' }, h('div', { class: 'row-label' }, h('label', { class: 'row-name', for: 'pv' + i }, n), f.hist), f.wrap),
+      f.pad);
   }) : h('p', { class: 'empty' }, 'แตะชื่อในขั้นที่ 1 เพื่อเลือกคนที่ร่วมกิน');
   rerender(list, nodes);
 }
@@ -673,8 +763,9 @@ function dishEditCard(d, people) {
 
   const money = moneyField({
     id: 'da-' + id, fk: 'da:' + id, label: 'ราคาจาน ' + dishLabel(d),
-    get: () => { const x = findDish(id); return x ? x.amount : 0; },
-    set: v => { const x = findDish(id); if (x) { x.amount = v; commit(); } }
+    get: () => { const x = findDish(id); return x ? (x.entry || entryFromAmount(x.amount)) : emptyEntry(); },
+    set: e => { const x = findDish(id); if (x) { x.entry = e; x.amount = entryTotal(e); commit(); } },
+    clearMsg: () => { const x = findDish(id); return 'ล้างราคา ' + (x ? dishLabel(x) : 'จาน') + ' แล้ว'; }
   });
   const sel = new Set(d.members);
   const chips = people.length
@@ -689,8 +780,8 @@ function dishEditCard(d, people) {
     h('div', { class: 'dish-head' }, nameInput,
       h('button', { type: 'button', class: 'btn btn-sm btn-danger-outline', 'aria-label': 'ลบจาน ' + dishLabel(d), onclick: () => deleteDish(id) }, 'ลบ')),
     d.warn ? h('p', { class: 'warn-inline' }, d.warn) : null,
-    h('div', { class: 'row-top' }, h('label', { class: 'row-name', for: 'da-' + id }, 'ราคาจาน'), money.wrap),
-    money.steps,
+    h('div', { class: 'row-top' }, h('div', { class: 'row-label' }, h('label', { class: 'row-name', for: 'da-' + id }, 'ราคาจาน'), money.hist), money.wrap),
+    money.pad,
     h('div', { class: 'members-head' },
       h('span', null, 'คนร่วมจ่าย ', h('span', { class: 'muted' }, memberCount + '/' + people.length + ' คน')),
       h('div', { class: 'mini' },
@@ -704,10 +795,12 @@ function dishEditCard(d, people) {
 function dishConfirmedCard(d, people) {
   const id = d.id;
   const names = people.filter(n => d.members.indexOf(n) !== -1);
+  const bd = d.entry && entryParts(d.entry, true).length > 1 ? entryText(d.entry, true) : '';   // แสดงเมื่อมีหลายรายการ
   return h('article', { class: 'dish confirmed', 'data-dish': id },
     h('div', { class: 'dish-head' },
       h('div', { class: 'dish-title' }, h('span', { class: 'ok-badge', 'aria-hidden': 'true' }, '✓'), h('span', { class: 'dish-title-text' }, dishLabel(d))),
       h('div', { class: 'dish-amt' }, fmtMoney(d.amount))),
+    bd ? h('p', { class: 'hist dish-bd' }, bd) : null,
     h('p', { class: 'dish-split', 'data-role': 'split' }),
     h('p', { class: 'dish-members' }, names.join(', ')),
     h('div', { class: 'dish-actions' },
@@ -852,6 +945,7 @@ function deleteCustom(n) {
   state.customNames = state.customNames.filter(x => x !== n);
   state.selected = state.selected.filter(x => x !== n);
   delete state.personal[n];                                  // ลบข้อมูลถาวร
+  delete state.personalEntry[n];
   const res = removeFromDishes(new Set([n]));
   afterPeopleChange();
   showToast('ลบ ' + n + ' แล้ว' + dishChangeMsg(res), { undo: snap });
@@ -879,14 +973,15 @@ function addName() {
 function addDish() {
   state.dishSeq += 1;
   const d = {
-    id: 'd' + state.dishSeq, seq: state.dishSeq, name: 'จานที่ ' + state.dishSeq, amount: 0,
+    id: 'd' + state.dishSeq, seq: state.dishSeq, name: 'จานที่ ' + state.dishSeq, amount: 0, entry: emptyEntry(),
     members: NEW_DISH_SELECT_ALL ? participants(state) : [], confirmed: false, warn: null
   };
   state.dishes.push(d);
   renderDishes();
   commit();
-  const inp = findByFk($('dishList'), 'da:' + d.id);
-  if (inp) inp.focus();
+  // เลื่อนให้เห็นจานใหม่ แต่ไม่ focus ช่องราคา (ไม่ให้คีย์บอร์ดมือถือเด้งมาบังแป้นตัวเลข)
+  const card = $('dishList').querySelector('[data-dish="' + d.id + '"]');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 function deleteDish(id) {
   const d = findDish(id);
@@ -1127,6 +1222,24 @@ function runSelfTests() {
   t('ปัดขึ้น 33.3333', fmtMoney(fCeil(F(333333n, 100n))), '33.34');
   t('ปัดขึ้น 117.701', fmtMoney(fCeil(F(117701n, 10n))), '117.71');
   t('JS ธรรมดาได้ 765.06 (ตัวอย่างปัญหา)', Math.ceil(650 * 1.1 * 1.07 * 100) / 100, 765.06);
+  // แป้นตัวเลข
+  const keys = (list, from) => list.reduce((e, k) => entryPress(e, k), from || emptyEntry());
+  let e = keys(['4', '7', '+', '1', '8', '9', '+', '9', '8']);
+  t('แป้น: 47+189+98 ยอด', fmtMoney(entryTotal(e)), '334.00');
+  t('แป้น: ข้อความ', entryText(e), '47 + 189 + 98');
+  e = entryPress(e, '+');
+  t('แป้น: กด + แล้ว', entryText(e), '47 + 189 + 98 +');
+  t('แป้น: + ซ้ำไม่เปลี่ยน', entryPress(e, '+'), e);
+  t('แป้น: ⌫ หลัง +', entryText(keys(['back'], e)), '47 + 189 + 98');
+  t('แป้น: ⌫ 2 ครั้ง', entryText(keys(['back', 'back'], e)), '47 + 189 + 9');
+  t('แป้น: ⌫ ยอด', fmtMoney(entryTotal(keys(['back', 'back'], e))), '245.00');
+  t('แป้น: C', entryText(entryPress(e, 'C')), '');
+  t('แป้น: 0 นำหน้า', entryText(keys(['0', '0', '5'])), '5');
+  t('แป้น: + ตอนเป็น 0', entryText(keys(['4', '7', '+', '0', '+'])), '47 +');
+  t('แป้น: หลักพัน', entryText(keys(['1', '2', '5', '0', '+', '4', '7'])), '1,250 + 47');
+  t('แป้น: ยืนยันแล้วไม่มี + ท้าย', entryText(keys(['4', '7', '+']), true), '47');
+  t('แป้น: ข้อมูลเก่าไม่มี entry', entryText(cleanEntry(undefined, 33400)), '334');
+  t('แป้น: entry ไม่ตรงยอด', entryText(cleanEntry({ t: [100], c: '' }, 33400)), '334');
   return out;
 }
 window.SplitBill = { calculate: calculate, buildCopyText: buildCopyText, runSelfTests: runSelfTests, fmtMoney: fmtMoney, freshBill: freshBill, getState: () => state };
